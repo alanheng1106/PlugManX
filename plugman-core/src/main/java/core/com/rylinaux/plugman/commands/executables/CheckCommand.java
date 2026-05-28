@@ -109,58 +109,65 @@ public class CheckCommand extends AbstractCommand {
             var threadUtil = get(ThreadUtil.class);
 
             threadUtil.async(() -> {
-                var results = UpdateUtil.checkUpToDate(getPluginManager(), get(PlugManConfigurationManager.class).getResourceMappingsConfig());
+                try {
+                    var results = UpdateUtil.checkUpToDate(getPluginManager(), get(PlugManConfigurationManager.class).getResourceMappingsConfig());
 
-                var upToDate = new StringBuilder();
-                var outOfDate = new StringBuilder();
-                var unknown = new StringBuilder();
+                    var upToDate = new StringBuilder();
+                    var outOfDate = new StringBuilder();
+                    var unknown = new StringBuilder();
 
-                for (var entry : results.entrySet()) {
+                    for (var entry : results.entrySet()) {
 
-                    var result = entry.getValue().type();
+                        var result = entry.getValue().type();
 
-                    var currentVersion = getPluginManager().getPluginByName(entry.getKey()).getVersion();
+                        var plugin = getPluginManager().getPluginByName(entry.getKey());
+                        if (plugin == null) continue;
+                        var currentVersion = plugin.getVersion();
 
-                    if (result == UpdateResult.ResultType.UP_TO_DATE)
-                        upToDate.append(entry.getKey()).append("(").append(currentVersion).append(") ");
-                    else if (result == UpdateResult.ResultType.INVALID_PLUGIN || result == UpdateResult.ResultType.NOT_INSTALLED)
-                        unknown.append(entry.getKey()).append("(").append(currentVersion).append(") ");
-                    else outOfDate.append(entry.getKey())
-                                .append("(")
-                                .append(currentVersion)
-                                .append(" -> ")
-                                .append(entry.getValue().latestVersion())
-                                .append(") ");
+                        if (result == UpdateResult.ResultType.UP_TO_DATE)
+                            upToDate.append(entry.getKey()).append("(").append(currentVersion).append(") ");
+                        else if (result == UpdateResult.ResultType.INVALID_PLUGIN || result == UpdateResult.ResultType.NOT_INSTALLED)
+                            unknown.append(entry.getKey()).append("(").append(currentVersion).append(") ");
+                        else outOfDate.append(entry.getKey())
+                                    .append("(")
+                                    .append(currentVersion)
+                                    .append(" -> ")
+                                    .append(entry.getValue().latestVersion())
+                                    .append(") ");
 
-                }
+                    }
 
-                if (!toFile) {
-                    threadUtil.sync(() -> {
-                        sender.sendMessage("check.up-to-date-player", upToDate.toString());
-                        sender.sendMessage("check.out-of-date-player", outOfDate.toString());
-                        sender.sendMessage("check.unknown-player", unknown.toString());
-                    });
-                    return;
-                }
+                    if (!toFile) {
+                        threadUtil.sync(() -> {
+                            sender.sendMessage("check.up-to-date-player", upToDate.toString());
+                            sender.sendMessage("check.out-of-date-player", outOfDate.toString());
+                            sender.sendMessage("check.unknown-player", unknown.toString());
+                        });
+                        return;
+                    }
 
-                var outFile = new File(Path.of("plugins", "PlugManX").toFile(), "updates.txt");
+                    var outFile = new File(Path.of("plugins", "PlugManX").toFile(), "updates.txt");
 
-                try (var writer = new PrintWriter(outFile)) {
-                    writer.println("Up-to-date (Installed):");
-                    writer.println(upToDate);
+                    try (var writer = new PrintWriter(outFile)) {
+                        writer.println("Up-to-date (Installed):");
+                        writer.println(upToDate);
 
-                    writer.println("Out-of-date (Installed -> Latest):");
-                    writer.println(outOfDate);
+                        writer.println("Out-of-date (Installed -> Latest):");
+                        writer.println(outOfDate);
 
-                    writer.println("Unknown (Installed):");
-                    writer.println(unknown);
-                } catch (IOException exception) {
+                        writer.println("Unknown (Installed):");
+                        writer.println(unknown);
+                    } catch (IOException exception) {
+                        var logger = get(PluginLogger.class);
+                        logger.warning("Error writing to file: " + exception.getMessage());
+                        return;
+                    }
+
+                    sender.sendMessage("check.file-done", outFile.getPath());
+                } catch (Exception e) {
                     var logger = get(PluginLogger.class);
-                    logger.warning("Error writing to file: " + exception.getMessage());
-                    return;
+                    logger.severe("An error occurred during update check: " + e.getMessage(), e);
                 }
-
-                sender.sendMessage("check.file-done", outFile.getPath());
             });
 
             return;
@@ -173,16 +180,21 @@ public class CheckCommand extends AbstractCommand {
         var threadUtil = get(ThreadUtil.class);
 
         threadUtil.async(() -> {
-            var result = UpdateUtil.checkUpToDate(pluginName, getPluginManager(), get(PlugManConfigurationManager.class).getResourceMappingsConfig());
+            try {
+                var result = UpdateUtil.checkUpToDate(pluginName, getPluginManager(), get(PlugManConfigurationManager.class).getResourceMappingsConfig());
 
-            threadUtil.sync(() -> {
-                switch (result.type()) {
-                    case NOT_INSTALLED -> sender.sendMessage("check.not-found", result.latestVersion());
-                    case OUT_OF_DATE -> sender.sendMessage("check.out-of-date", result.currentVersion(), result.latestVersion());
-                    case UP_TO_DATE -> sender.sendMessage("check.up-to-date", result.currentVersion());
-                    default -> sender.sendMessage("check.not-found-spigot");
-                }
-            });
+                threadUtil.sync(() -> {
+                    switch (result.type()) {
+                        case NOT_INSTALLED -> sender.sendMessage("check.not-found", result.latestVersion());
+                        case OUT_OF_DATE -> sender.sendMessage("check.out-of-date", result.currentVersion(), result.latestVersion());
+                        case UP_TO_DATE -> sender.sendMessage("check.up-to-date", result.currentVersion());
+                        default -> sender.sendMessage("check.not-found-spigot");
+                    }
+                });
+            } catch (Exception e) {
+                var logger = get(PluginLogger.class);
+                logger.severe("An error occurred during update check: " + e.getMessage(), e);
+            }
         });
     }
 }

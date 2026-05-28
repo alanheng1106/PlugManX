@@ -36,9 +36,11 @@ import lombok.experimental.UtilityClass;
 
 import java.io.IOException;
 import java.net.URI;
+import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Map;
 import java.util.TreeMap;
@@ -140,7 +142,7 @@ public class SpiGetUtil {
                 .build()) {
 
             var request = HttpRequest.newBuilder()
-                    .uri(URI.create(API_BASE_URL + "search/resources/" + name + "?field=name&fields=id%2Cname"))
+                    .uri(URI.create(API_BASE_URL + "search/resources/" + URLEncoder.encode(name, StandardCharsets.UTF_8) + "?field=name&fields=id%2Cname"))
                     .header("User-Agent", "PlugMan")
                     .timeout(Duration.ofSeconds(30))
                     .GET()
@@ -164,7 +166,7 @@ public class SpiGetUtil {
                     }
                 }
 
-            } catch (IOException | InterruptedException exception) {
+            } catch (Exception exception) {
                 LOGGER.log(Level.SEVERE, "Failed to get plugin ID for: " + name, exception);
             }
         }
@@ -198,7 +200,7 @@ public class SpiGetUtil {
                 var gson = new Gson();
                 return gson.fromJson(body, JsonArray.class);
 
-            } catch (IOException | InterruptedException exception) {
+            } catch (Exception exception) {
                 LOGGER.log(Level.SEVERE, "Failed to get plugin versions for ID: " + id, exception);
             }
         }
