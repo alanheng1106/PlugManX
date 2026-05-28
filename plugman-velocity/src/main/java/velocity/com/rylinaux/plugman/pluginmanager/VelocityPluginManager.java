@@ -2,8 +2,8 @@ package velocity.com.rylinaux.plugman.pluginmanager;
 
 import com.velocitypowered.api.plugin.PluginContainer;
 import com.velocitypowered.api.proxy.ProxyServer;
-import com.velocitypowered.proxy.command.VelocityCommandManager;
 import core.com.rylinaux.plugman.PluginResult;
+import core.com.rylinaux.plugman.plugins.CommandMapWrap;
 import core.com.rylinaux.plugman.config.PlugManConfigurationManager;
 import core.com.rylinaux.plugman.plugins.Command;
 import core.com.rylinaux.plugman.plugins.Plugin;
@@ -33,13 +33,7 @@ public class VelocityPluginManager implements PluginManager {
         return PlugManVelocity.getInstance().getServer();
     }
 
-    private com.velocitypowered.proxy.plugin.VelocityPluginManager getPluginManager() {
-        return (com.velocitypowered.proxy.plugin.VelocityPluginManager) getServer().getPluginManager();
-    }
 
-    private VelocityCommandManager getCommandManager() {
-        return (VelocityCommandManager) getServer().getCommandManager();
-    }
 
     @Override
     public PluginResult enable(Plugin plugin) {
@@ -177,22 +171,9 @@ public class VelocityPluginManager implements PluginManager {
 
     @SneakyThrows
     @Override
-    public Map<String, Command> getKnownCommands() {
-        var commands = new HashMap<String, Command>();
-
-        var commandMetas = FieldAccessor.<Map<String, com.velocitypowered.api.command.CommandMeta>>getValue("commandMetas", getCommandManager());
-
-        for (var entry : commandMetas.entrySet()) {
-            var alias = entry.getKey();
-
-            commands.put(alias, new VelocityCommand(entry.getValue()));
-        }
-        return commands;
-    }
-
-    @Override
-    public void setKnownCommands(Map<String, Command> knownCommands) {
-        // Not implemented
+    public CommandMapWrap<com.velocitypowered.api.command.CommandMeta> getKnownCommands() {
+        var commandMetas = FieldAccessor.<Map<String, com.velocitypowered.api.command.CommandMeta>>getValue("commandMetas", getServer().getCommandManager());
+        return new CommandMapWrap<>(commandMetas, VelocityCommand::new);
     }
 
     @Override

@@ -74,7 +74,7 @@ public final class PlugManVelocity {
 
     @Inject
     public PlugManVelocity(PluginContainer container, ProxyServer server, Logger logger, @DataDirectory Path dataDirectory) {
-        this.container = container
+        this.container = container;
         this.server = server;
         this.logger = logger;
         this.dataDirectory = dataDirectory;

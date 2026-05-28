@@ -126,7 +126,7 @@ public class VelocityConfigurationProvider implements YamlConfigurationProvider 
                 if (inputStream != null) Files.copy(inputStream, configPath);
             }
         } catch (IOException exception) {
-            PlugManVelocity.getInstance().getLogger().log(Level.SEVERE, "Failed to save default configuration: " + configPath, exception);
+            PlugManVelocity.getInstance().getLogger().error("Failed to save default configuration: " + configPath, exception);
         }
     }
 

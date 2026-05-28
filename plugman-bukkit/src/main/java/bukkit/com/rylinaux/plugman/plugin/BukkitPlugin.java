@@ -1,7 +1,7 @@
 package bukkit.com.rylinaux.plugman.plugin;
 
 import core.com.rylinaux.plugman.plugins.Plugin;
-import core.com.rylinaux.plugman.util.reflection.FieldAccessor;
+import core.com.rylinaux.plugman.util.reflection.MethodAccessor;
 import lombok.SneakyThrows;
 import lombok.experimental.Delegate;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -34,7 +34,10 @@ public record BukkitPlugin(@Delegate org.bukkit.plugin.Plugin bukkitPlugin) impl
     @SneakyThrows
     @Override
     public File getFile() {
-        return FieldAccessor.getValue(JavaPlugin.class, "getFile", bukkitPlugin);
+        if (bukkitPlugin instanceof JavaPlugin) {
+            return MethodAccessor.invoke(JavaPlugin.class, "getFile", bukkitPlugin);
+        }
+        return null;
     }
 
     @SuppressWarnings("unchecked")
